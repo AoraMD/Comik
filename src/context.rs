@@ -13,6 +13,8 @@ pub(crate) struct Context {
     bark: Option<String>,
 }
 
+pub(self) const ICON_URL: &str = "https://comik-icon.aoramd.moe/icon.png";
+
 impl Context {
     pub fn new(debug: bool, cache: PathBuf, repo: PathBuf, bark: Option<String>) -> Self {
         return Context {
@@ -83,10 +85,7 @@ impl Context {
                 .join(url_escape::encode_component(content).to_string())
                 .display()
                 .to_string();
-            let url = format!(
-                "{}?icon={}&group={}",
-                base, "https://comik.aoramd.workers.dev/icon.png", APP_NAME
-            );
+            let url = format!("{}?icon={}&group={}",base, ICON_URL, APP_NAME);
             self.report_debug(&format!("notify Bark: {}", &url));
             if let Err(error) = reqwest::blocking::get(url) {
                 self.report_error(&format!("failed to notify Bark: {}", error));
