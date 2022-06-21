@@ -97,8 +97,10 @@ impl Context {
 impl Drop for Context {
     fn drop(&mut self) {
         self.report_debug("start clean up context");
-        if let Err(error) = remove_dir_all(&self.cache) {
-            self.report_error(&format!("failed to clean up cache: {}", error));
+        if self.cache.exists() {
+            if let Err(error) = remove_dir_all(&self.cache) {
+                self.report_error(&format!("failed to clean up cache: {}", error));
+            }
         }
         self.report_debug("complete clean up context");
     }
