@@ -14,7 +14,7 @@ Configuration of execute command is a JSON file with the format of following sam
         "port": 587,
         "password": "passwd"
     },
-		"receivers": [
+	"receivers": [
         "kindle@example.com"
     ],
   	"notify": "Comic %comic% has been updated to chapter %chapter% (%success%/%total%).",
@@ -78,7 +78,7 @@ Configuration of execute command is a JSON file with the format of following sam
 
 ### SourceObject
 
-The object is a K-V pair, which "K" is source tag and "V" is a source-specific JSON value.
+The object is a K-V pair group, which "K" is source tag and "V" is a source-specific JSON value.
 
 See [Sources](#Sources) for more information.
 

@@ -1,6 +1,6 @@
 # Comik
 
-<img src="cover.png" width="307" height="128"/>
+<img src="cover.png" width="256" height="128"/>
 
 <img alt="License" src="https://img.shields.io/github/license/AoraMD/Comik?style=flat-square">
 
@@ -19,6 +19,8 @@ Use `--learn` argument to mark all chapters is read but skip downloading and sen
 ```
 
 The command uses a [JSON](https://www.json.org/) based configuration file. Take a look in [Guide of Execute](doc/execute.md) for details.
+
+> It is recommended to use timer tools like [crontab](https://man7.org/linux/man-pages/man5/crontab.5.html) to fetch comic update automatically.
 
 ### Search
 
