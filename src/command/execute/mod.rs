@@ -7,7 +7,6 @@ use crate::{
     APP_NAME,
 };
 use const_format::formatcp;
-use lettre_email::mime;
 use serde::Deserialize;
 use serde_json::Value;
 use std::{error::Error, fs::File, path::PathBuf};
@@ -130,7 +129,7 @@ pub(crate) fn execute_main(learn: bool, scale: f64, config: PathBuf, context: &C
                 if let Err(error) =
                     config
                         .sender
-                        .send_file(receiver, APP_NAME, &file, &mime::APPLICATION_PDF)
+                        .send_file(receiver, APP_NAME, &file)
                 {
                     context
                         .report_error(&format!("failed to send mail to {}: {}", receiver, error));

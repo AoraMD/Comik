@@ -1,24 +1,17 @@
-use lettre::smtp::authentication::Credentials;
-use lettre::smtp::authentication::Mechanism;
-use lettre::ClientSecurity;
-use lettre::ClientTlsParameters;
-use lettre::SmtpClient;
-use lettre::SmtpTransport;
-use lettre::Transport;
-use lettre_email::mime::Mime;
-use lettre_email::EmailBuilder;
-use native_tls::Protocol;
-use native_tls::TlsConnector;
+use crate::APP_NAME;
+use lettre::{
+    address::Address,
+    message::{header::ContentType, Attachment, Mailbox as LettreMailBox, Message},
+    transport::smtp::authentication::{Credentials, Mechanism},
+    SmtpTransport, Transport,
+};
 use serde::Deserialize;
-use std::cell::RefCell;
-use std::error::Error;
-use std::path::Path;
+use std::{cell::RefCell, error::Error, fs, path::Path};
 
 #[derive(Deserialize)]
 pub(crate) struct MailboxJson {
     address: String,
     host: String,
-    port: u16,
     password: String,
 }
 
@@ -28,21 +21,24 @@ pub(crate) struct Mailbox {
 }
 
 impl Mailbox {
-    pub fn send_file(
-        &self,
-        to: &str,
-        subject: &str,
-        file: &Path,
-        mine: &Mime,
-    ) -> Result<(), Box<dyn Error>> {
-        let mail = EmailBuilder::new()
-            .from(self.address.as_str())
+    pub fn send_file(&self, to: &str, subject: &str, file: &Path) -> Result<(), Box<dyn Error>> {
+        let from = LettreMailBox::new(
+            Some(APP_NAME.to_string()),
+            self.address.as_str().parse::<Address>()?,
+        );
+        let to = LettreMailBox::new(None, to.parse::<Address>()?);
+        let mail = Message::builder()
+            .from(from)
             .to(to)
             .subject(subject)
-            .attachment_from_file(file, file.file_name().and_then(|x| x.to_str()), mine)?
-            .build()?;
+            .singlepart(
+                Attachment::new(file.file_name().unwrap().to_string_lossy().to_string()).body(
+                    fs::read(file)?,
+                    ContentType::parse("application/pdf").unwrap(),
+                ),
+            )?;
 
-        self.transport.borrow_mut().send(mail.into())?;
+        self.transport.borrow_mut().send(&mail)?;
         return Ok(());
     }
 }
@@ -51,20 +47,13 @@ impl TryFrom<&MailboxJson> for Mailbox {
     type Error = Box<dyn Error>;
 
     fn try_from(json: &MailboxJson) -> Result<Self, Box<dyn Error>> {
-        let tls_connector = TlsConnector::builder()
-            .min_protocol_version(Some(Protocol::Tlsv12))
-            .build()?;
-        let tls_parameters = ClientTlsParameters::new(json.host.clone(), tls_connector);
-        let transport = SmtpClient::new(
-            (json.host.as_str(), json.port),
-            ClientSecurity::Required(tls_parameters),
-        )?
-        .authentication_mechanism(Mechanism::Login)
-        .credentials(Credentials::new(
-            json.address.clone(),
-            json.password.clone(),
-        ))
-        .transport();
+        let transport = SmtpTransport::starttls_relay(json.host.as_str())?
+            .credentials(Credentials::new(
+                json.address.clone(),
+                json.password.clone(),
+            ))
+            .authentication(vec![Mechanism::Login])
+            .build();
         return Ok(Mailbox {
             address: json.address.clone(),
             transport: RefCell::new(transport),

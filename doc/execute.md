@@ -11,7 +11,6 @@ Configuration of execute command is a JSON file with the format of following sam
     "sender": {
         "address": "sender@example.com",
         "host": "smtp.example.com",
-        "port": 587,
         "password": "passwd"
     },
 	"receivers": [
@@ -55,7 +54,6 @@ Configuration of execute command is a JSON file with the format of following sam
 {
     "address": "sender@example.com",
     "host": "smtp.example.com",
-    "port": 587,
     "password": "passwd"
 }
 ```
@@ -67,10 +65,6 @@ Configuration of execute command is a JSON file with the format of following sam
 - host: string
 
     SMTP server name.
-
-- port: number
-
-    SMTP port.
 
 - password: string
 
