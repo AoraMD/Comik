@@ -9,7 +9,52 @@ use context::Context;
 use std::path::PathBuf;
 use util::mail;
 
-pub const APP_NAME: &str = "Comik";
+pub const APP_NAME: &str = "comik";
+pub const APP_NAME_TITALIZE: &str = "Comik";
+
+#[cfg(target_os = "windows")]
+fn default_cache_path() -> String {
+    let path = match dirs::cache_dir() {
+        Some(dir) => dir.join(APP_NAME).join("cache"),
+        None => {
+            panic!("failed to load default cache dir");
+        }
+    };
+    return path.to_string_lossy().to_string();
+}
+
+#[cfg(not(target_os = "windows"))]
+fn default_cache_path() -> String {
+    let path = match dirs::cache_dir() {
+        Some(dir) => dir.join(APP_NAME),
+        None => {
+            panic!("failed to load default cache dir");
+        }
+    };
+    return path.to_string_lossy().to_string();
+}
+
+#[cfg(target_os = "windows")]
+fn default_repo_path() -> String {
+    let path = match dirs::data_local_dir() {
+        Some(dir) => dir.clone().join(APP_NAME).join("repo"),
+        None => {
+            panic!("failed to load default repo dir");
+        }
+    };
+    return path.to_string_lossy().to_string();
+}
+
+#[cfg(not(target_os = "windows"))]
+fn default_repo_path() -> String {
+    let path = match dirs::data_local_dir() {
+        Some(dir) => dir.clone().join(APP_NAME),
+        None => {
+            panic!("failed to load default repo dir");
+        }
+    };
+    return path.to_string_lossy().to_string();
+}
 
 #[derive(Parser)]
 #[clap(author, version, about)]
@@ -29,9 +74,9 @@ struct Args {
         long,
         value_parser,
         value_name = "path",
-        default_value = "/var/cache/comik"
+        default_value_t = default_cache_path()
     )]
-    cache: PathBuf,
+    cache: String,
 
     /// Set repository directory path
     #[clap(
@@ -39,12 +84,12 @@ struct Args {
         long,
         value_parser,
         value_name = "path",
-        default_value = "/var/local/comik"
+        default_value_t = default_repo_path()
     )]
-    repo: PathBuf,
+    repo: String,
 
     #[clap(subcommand)]
-    subcommand: Option<Command>,
+    command: Option<Command>,
 }
 
 #[derive(Subcommand)]
@@ -82,7 +127,7 @@ impl Command {
                 if scale > 1.0 || scale < 0.0 {
                     context.report_error("scale factor must be between 0.0 and 1.0");
                 } else {
-                    execute::execute_main(learn, scale, config, context);
+                    execute::main(learn, scale, config, context);
                 }
             }
         }
@@ -93,21 +138,21 @@ fn main() {
     let args: Args = Args::parse();
     let context = Context::new(
         args.debug,
-        args.cache.clone(),
-        args.repo.clone(),
+        PathBuf::from(args.cache.as_str()),
+        PathBuf::from(args.repo.as_str()),
         args.bark.clone(),
     );
     context.report_debug(&format!(
         "[args] cache directory path: {}",
-        &args.cache.display()
+        &args.cache
     ));
     context.report_debug(&format!(
         "[args] repository directory path: {}",
-        &args.cache.display()
+        &args.repo
     ));
     context.report_debug(&format!(
         "[args] Bark URL: {}",
         &args.bark.unwrap_or("null".to_string())
     ));
-    args.subcommand.unwrap().execute(&context);
+    args.command.unwrap().execute(&context);
 }

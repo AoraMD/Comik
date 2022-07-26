@@ -4,7 +4,7 @@ use crate::{
     context::Context,
     mail::{Mailbox, MailboxJson},
     util::{extension::ResultExtension, pdf::create_pdf_from_images},
-    APP_NAME,
+    APP_NAME_TITALIZE,
 };
 use const_format::formatcp;
 use serde::Deserialize;
@@ -76,7 +76,7 @@ pub(self) struct Element {
     images: Vec<PathBuf>,
 }
 
-pub(crate) fn execute_main(learn: bool, scale: f64, config: PathBuf, context: &Context) {
+pub(crate) fn main(learn: bool, scale: f64, config: PathBuf, context: &Context) {
     let config_json = {
         let config_json = ConfigJson::read(config);
         if let Err(error) = config_json {
@@ -129,7 +129,7 @@ pub(crate) fn execute_main(learn: bool, scale: f64, config: PathBuf, context: &C
                 if let Err(error) =
                     config
                         .sender
-                        .send_file(receiver, APP_NAME, &file)
+                        .send_file(receiver, APP_NAME_TITALIZE, &file)
                 {
                     context
                         .report_error(&format!("failed to send mail to {}: {}", receiver, error));

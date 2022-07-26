@@ -1,4 +1,4 @@
-use crate::APP_NAME;
+use crate::APP_NAME_TITALIZE;
 use lettre::{
     address::Address,
     message::{header::ContentType, Attachment, Mailbox as LettreMailBox, Message},
@@ -23,7 +23,7 @@ pub(crate) struct Mailbox {
 impl Mailbox {
     pub fn send_file(&self, to: &str, subject: &str, file: &Path) -> Result<(), Box<dyn Error>> {
         let from = LettreMailBox::new(
-            Some(APP_NAME.to_string()),
+            Some(APP_NAME_TITALIZE.to_string()),
             self.address.as_str().parse::<Address>()?,
         );
         let to = LettreMailBox::new(None, to.parse::<Address>()?);

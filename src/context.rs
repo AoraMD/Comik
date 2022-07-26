@@ -1,4 +1,4 @@
-use crate::{util::extension::ResultExtension, APP_NAME};
+use crate::{util::extension::ResultExtension, APP_NAME_TITALIZE};
 use std::{
     fs::{create_dir_all, remove_dir_all, File},
     io,
@@ -85,7 +85,7 @@ impl Context {
                 .join(url_escape::encode_component(content).to_string())
                 .display()
                 .to_string();
-            let url = format!("{}?icon={}&group={}",base, ICON_URL, APP_NAME);
+            let url = format!("{}?icon={}&group={}",base, ICON_URL, APP_NAME_TITALIZE);
             self.report_debug(&format!("notify Bark: {}", &url));
             if let Err(error) = reqwest::blocking::get(url) {
                 self.report_error(&format!("failed to notify Bark: {}", error));
