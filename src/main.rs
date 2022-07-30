@@ -12,10 +12,15 @@ use util::mail;
 pub const APP_NAME: &str = "comik";
 pub const APP_NAME_TITALIZE: &str = "Comik";
 
+#[cfg(any(target_os = "macos", target_os = "windows"))]
+pub const APP_NAME_IN_PATH: &str = APP_NAME_TITALIZE;
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+pub const APP_NAME_IN_PATH: &str = APP_NAME;
+
 #[cfg(target_os = "windows")]
 fn default_cache_path() -> String {
     let path = match dirs::cache_dir() {
-        Some(dir) => dir.join(APP_NAME).join("cache"),
+        Some(dir) => dir.join(APP_NAME_IN_PATH).join("cache"),
         None => {
             panic!("failed to load default cache dir");
         }
@@ -26,7 +31,7 @@ fn default_cache_path() -> String {
 #[cfg(not(target_os = "windows"))]
 fn default_cache_path() -> String {
     let path = match dirs::cache_dir() {
-        Some(dir) => dir.join(APP_NAME),
+        Some(dir) => dir.join(APP_NAME_IN_PATH),
         None => {
             panic!("failed to load default cache dir");
         }
@@ -37,7 +42,7 @@ fn default_cache_path() -> String {
 #[cfg(target_os = "windows")]
 fn default_repo_path() -> String {
     let path = match dirs::data_local_dir() {
-        Some(dir) => dir.clone().join(APP_NAME).join("repo"),
+        Some(dir) => dir.clone().join(APP_NAME_IN_PATH).join("repo"),
         None => {
             panic!("failed to load default repo dir");
         }
@@ -48,7 +53,7 @@ fn default_repo_path() -> String {
 #[cfg(not(target_os = "windows"))]
 fn default_repo_path() -> String {
     let path = match dirs::data_local_dir() {
-        Some(dir) => dir.clone().join(APP_NAME),
+        Some(dir) => dir.clone().join(APP_NAME_IN_PATH),
         None => {
             panic!("failed to load default repo dir");
         }
