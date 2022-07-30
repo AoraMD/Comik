@@ -3,8 +3,8 @@ use printpdf::*;
 use printpdf::{Image, Mm, PdfDocument};
 use std::{
     error::Error,
-    fs::File,
-    io::{BufWriter, Error as IoError},
+    io::Cursor,
+    io::Error as IoError,
     path::{Path, PathBuf},
 };
 
@@ -12,7 +12,7 @@ const PDF_DPI: f64 = 300.0;
 const A5_WIDTH: Mm = Mm(148.0);
 const A5_HEIGHT: Mm = Mm(210.0);
 
-pub fn create_pdf_from_images(
+pub async fn create_pdf_from_images(
     name: &str,
     parent_dir: &Path,
     images: &[PathBuf],
@@ -27,10 +27,11 @@ pub fn create_pdf_from_images(
     for (index, image_path) in images.iter().enumerate() {
         let extension = image_path.extension().and_then(|x| x.to_str());
         let current_ref = pdf.get_page(current_page).get_layer(current_layer);
+        let image_data = Cursor::new(tokio::fs::read(image_path).await?);
         let image = if extension == Some("png") {
-            Image::try_from(PngDecoder::new(File::open(image_path)?)?)?
+            Image::try_from(PngDecoder::new(image_data)?)?
         } else if extension == Some("jpg") || extension == Some("jpeg") {
-            Image::try_from(JpegDecoder::new(File::open(image_path)?)?)?
+            Image::try_from(JpegDecoder::new(image_data)?)?
         } else {
             return Err(Box::new(IoError::new(
                 std::io::ErrorKind::Unsupported,
@@ -69,6 +70,6 @@ pub fn create_pdf_from_images(
         }
     }
     let result = parent_dir.join(name);
-    pdf.save(&mut BufWriter::new(File::create(result.clone())?))?;
+    tokio::fs::write(result.clone(), pdf.save_to_bytes()?).await?;
     return Ok(result);
 }

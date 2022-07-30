@@ -4,14 +4,14 @@ use crate::{
     context::Context,
     mail::{Mailbox, MailboxJson},
     util::{extension::ResultExtension, pdf::create_pdf_from_images},
-    APP_NAME_TITALIZE,
+    APP_NAME_TITLEIZE,
 };
 use async_trait::async_trait;
 use const_format::formatcp;
 use futures::future::join_all;
 use serde::Deserialize;
 use serde_json::Value;
-use std::{error::Error, fs::File, path::PathBuf};
+use std::{error::Error, path::PathBuf};
 
 pub(self) const NOTIFY_UPDATE_TITLE: &str = "Comic Update";
 pub(self) const HOLDER_COMIC_NAME: &str = "%comic%";
@@ -35,8 +35,9 @@ pub(self) struct ConfigJson {
 }
 
 impl ConfigJson {
-    fn read(path: PathBuf) -> Result<ConfigJson, Box<dyn Error>> {
-        return Ok(serde_json::from_reader(File::open(path)?)?);
+    async fn read(path: PathBuf) -> Result<ConfigJson, Box<dyn Error>> {
+        let json = tokio::fs::read_to_string(path).await?;
+        return serde_json::from_str::<ConfigJson>(json.as_str())?.into_ok();
     }
 }
 
@@ -81,7 +82,7 @@ pub(self) struct Element {
 
 pub(crate) async fn main(learn: bool, scale: f64, config: PathBuf, context: &Context) {
     let config_json = {
-        let config_json = ConfigJson::read(config);
+        let config_json = ConfigJson::read(config).await;
         if let Err(error) = config_json {
             context.report_error(&format!("failed to parse config file: {}", error));
             return;
@@ -135,7 +136,8 @@ pub(crate) async fn main(learn: bool, scale: f64, config: PathBuf, context: &Con
                 context.document_repo_path(),
                 &element.images,
                 scale,
-            );
+            )
+            .await;
             if let Err(error) = file {
                 context.report_error(&format!("failed to create document: {}", error));
                 return;
@@ -143,7 +145,7 @@ pub(crate) async fn main(learn: bool, scale: f64, config: PathBuf, context: &Con
             let file = file.unwrap();
             let mut success = 0;
             for receiver in receivers {
-                if let Err(error) = sender.send_file(receiver, APP_NAME_TITALIZE, &file) {
+                if let Err(error) = sender.send_file(receiver, APP_NAME_TITLEIZE, &file).await {
                     context
                         .report_error(&format!("failed to send mail to {}: {}", receiver, error));
                 } else {
@@ -166,8 +168,9 @@ pub(crate) async fn main(learn: bool, scale: f64, config: PathBuf, context: &Con
         }
 
         // Mark document has been sent.
-        if let Err(error) =
-            context.mark(&element.source_tag, &element.comic_id, &element.chapter_id)
+        if let Err(error) = context
+            .mark(&element.source_tag, &element.comic_id, &element.chapter_id)
+            .await
         {
             context.report_error(&format!(
                 "failed to mark {}:{}: {}",

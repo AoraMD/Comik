@@ -1,4 +1,4 @@
-use crate::APP_NAME_TITALIZE;
+use crate::APP_NAME_TITLEIZE;
 use lettre::{
     address::Address,
     message::{header::ContentType, Attachment, Mailbox as LettreMailBox, Message},
@@ -6,7 +6,7 @@ use lettre::{
     SmtpTransport, Transport,
 };
 use serde::Deserialize;
-use std::{cell::RefCell, error::Error, fs, path::Path};
+use std::{cell::RefCell, error::Error, path::Path};
 
 #[derive(Deserialize)]
 pub(crate) struct MailboxJson {
@@ -21,9 +21,14 @@ pub(crate) struct Mailbox {
 }
 
 impl Mailbox {
-    pub fn send_file(&self, to: &str, subject: &str, file: &Path) -> Result<(), Box<dyn Error>> {
+    pub async fn send_file(
+        &self,
+        to: &str,
+        subject: &str,
+        file: &Path,
+    ) -> Result<(), Box<dyn Error>> {
         let from = LettreMailBox::new(
-            Some(APP_NAME_TITALIZE.to_string()),
+            Some(APP_NAME_TITLEIZE.to_string()),
             self.address.as_str().parse::<Address>()?,
         );
         let to = LettreMailBox::new(None, to.parse::<Address>()?);
@@ -33,7 +38,7 @@ impl Mailbox {
             .subject(subject)
             .singlepart(
                 Attachment::new(file.file_name().unwrap().to_string_lossy().to_string()).body(
-                    fs::read(file)?,
+                    tokio::fs::read(file).await?,
                     ContentType::parse("application/pdf").unwrap(),
                 ),
             )?;

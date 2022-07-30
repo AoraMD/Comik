@@ -66,7 +66,8 @@ impl Source for DmzjSource {
                 let images = if !learn {
                     // Only fetch and download image if not in learn mode.
                     context.report_debug(&format!("fetching chapter {}:{}", comic_id, chapter_id));
-                    let chapter_info = match model::dmzj::search_chapter(comic_id, chapter_id).await {
+                    let chapter_info = match model::dmzj::search_chapter(comic_id, chapter_id).await
+                    {
                         Ok(chapter_info) => chapter_info,
                         Err(error) => {
                             context.report_error(&format!("failed to search chapter: {}", error));
@@ -92,13 +93,16 @@ impl Source for DmzjSource {
                                             return None; // 'page
                                         }
                                     };
-                                let path = match context.create_image_cache(
-                                    self.tag(),
-                                    comic_id,
-                                    chapter_id,
-                                    index,
-                                    extension,
-                                ) {
+                                let path = match context
+                                    .create_image_cache(
+                                        self.tag(),
+                                        comic_id,
+                                        chapter_id,
+                                        index,
+                                        extension,
+                                    )
+                                    .await
+                                {
                                     Ok(path) => path,
                                     Err(error) => {
                                         context.report_error(&format!(

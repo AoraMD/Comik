@@ -9,11 +9,11 @@ use context::Context;
 use std::path::PathBuf;
 use util::mail;
 
-pub const APP_NAME: &str = "comik";
-pub const APP_NAME_TITALIZE: &str = "Comik";
+pub(crate) const APP_NAME: &str = "comik";
+pub(crate) const APP_NAME_TITLEIZE: &str = "Comik";
 
 #[cfg(any(target_os = "macos", target_os = "windows"))]
-pub const APP_NAME_IN_PATH: &str = APP_NAME_TITALIZE;
+pub const APP_NAME_IN_PATH: &str = APP_NAME_TITLEIZE;
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]
 pub const APP_NAME_IN_PATH: &str = APP_NAME;
 

@@ -1,9 +1,10 @@
-use crate::{util::extension::ResultExtension, APP_NAME_TITALIZE};
+use crate::{util::extension::ResultExtension, APP_NAME_TITLEIZE};
+use futures::executor::block_on;
 use std::{
-    fs::{create_dir_all, remove_dir_all, File},
     io,
     path::{Path, PathBuf},
 };
+use tokio::fs::File as TokioFile;
 
 pub(crate) struct Context {
     debug: bool,
@@ -48,14 +49,15 @@ impl Context {
             .exists();
     }
 
-    pub fn mark(&self, tag: &str, comic_id: &str, chapter_id: &str) -> io::Result<()> {
+    pub async fn mark(&self, tag: &str, comic_id: &str, chapter_id: &str) -> io::Result<()> {
         let path = self.mark.clone();
-        create_dir_all(path.clone())?;
+        tokio::fs::create_dir_all(path.clone()).await?;
         let path = path.join(&format!("{}_{}_{}", tag, comic_id, chapter_id));
-        return File::create(path).and_then(|_| Ok(()));
+        TokioFile::create(path).await?;
+        return Ok(());
     }
 
-    pub fn create_image_cache(
+    pub async fn create_image_cache(
         &self,
         tag: &str,
         comic_id: &str,
@@ -64,7 +66,7 @@ impl Context {
         extension: &str,
     ) -> io::Result<PathBuf> {
         let cache_image = self.cache.clone();
-        create_dir_all(&cache_image)?;
+        tokio::fs::create_dir_all(&cache_image).await?;
         return cache_image
             .join(format!(
                 "{}_{}_{}_{}.{}",
@@ -85,7 +87,7 @@ impl Context {
                 .join(url_escape::encode_component(content).to_string())
                 .display()
                 .to_string();
-            let url = format!("{}?icon={}&group={}",base, ICON_URL, APP_NAME_TITALIZE);
+            let url = format!("{}?icon={}&group={}", base, ICON_URL, APP_NAME_TITLEIZE);
             self.report_debug(&format!("notify Bark: {}", &url));
             if let Err(error) = reqwest::get(url).await {
                 self.report_error(&format!("failed to notify Bark: {}", error));
@@ -96,12 +98,14 @@ impl Context {
 
 impl Drop for Context {
     fn drop(&mut self) {
-        self.report_debug("start clean up context");
-        if self.cache.exists() {
-            if let Err(error) = remove_dir_all(&self.cache) {
-                self.report_error(&format!("failed to clean up cache: {}", error));
+        block_on(async {
+            self.report_debug("start clean up context");
+            if self.cache.exists() {
+                if let Err(error) = tokio::fs::remove_dir_all(&self.cache).await {
+                    self.report_error(&format!("failed to clean up cache: {}", error));
+                }
             }
-        }
-        self.report_debug("complete clean up context");
+            self.report_debug("complete clean up context");
+        });
     }
 }

@@ -1,7 +1,7 @@
 use crate::util::extension::ResultExtension;
 use reqwest::header::{REFERER, USER_AGENT};
 use serde::Deserialize;
-use std::{error::Error, fs::File, io::Write, path::Path};
+use std::{error::Error, path::Path};
 
 #[derive(Deserialize)]
 pub(self) struct ComicResp {
@@ -109,7 +109,6 @@ pub(crate) async fn download_image(file: &Path, url: &str) -> Result<(), Box<dyn
     .header(REFERER, "http://images.muwai.com/")
     .header(USER_AGENT, "%E5%8A%A8%E6%BC%AB%E4%B9%8B%E5%AE%B6%E7%A4%BE%E5%8C%BA/27 CFNetwork/1329 Darwin/21.3.0")
     .send().await?.bytes().await?;
-    let mut file = File::create(file)?;
-    file.write_all(&response)?;
+    tokio::fs::write(file, &response).await?;
     return Ok(());
 }
