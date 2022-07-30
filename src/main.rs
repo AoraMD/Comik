@@ -110,7 +110,7 @@ enum Command {
 }
 
 impl Command {
-    fn execute(self, context: &Context) {
+    async fn execute(self, context: &Context) {
         match self {
             Command::Execute {
                 learn,
@@ -127,14 +127,15 @@ impl Command {
                 if scale > 1.0 || scale < 0.0 {
                     context.report_error("scale factor must be between 0.0 and 1.0");
                 } else {
-                    execute::main(learn, scale, config, context);
+                    execute::main(learn, scale, config, context).await;
                 }
             }
         }
     }
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let args: Args = Args::parse();
     let context = Context::new(
         args.debug,
@@ -154,5 +155,5 @@ fn main() {
         "[args] Bark URL: {}",
         &args.bark.unwrap_or("null".to_string())
     ));
-    args.command.unwrap().execute(&context);
+    args.command.unwrap().execute(&context).await;
 }

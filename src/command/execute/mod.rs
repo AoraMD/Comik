@@ -6,7 +6,9 @@ use crate::{
     util::{extension::ResultExtension, pdf::create_pdf_from_images},
     APP_NAME_TITALIZE,
 };
+use async_trait::async_trait;
 use const_format::formatcp;
+use futures::future::join_all;
 use serde::Deserialize;
 use serde_json::Value;
 use std::{error::Error, fs::File, path::PathBuf};
@@ -55,9 +57,10 @@ impl TryFrom<&ConfigJson> for Config {
     }
 }
 
+#[async_trait]
 pub(self) trait Source {
     fn tag(&self) -> &'static str;
-    fn fetch(&self, learn: bool, value: &Value, context: &Context) -> Vec<Element>;
+    async fn fetch(&self, learn: bool, value: &Value, context: &Context) -> Vec<Element>;
 }
 
 fn find_source(tag: &str) -> Option<Box<dyn Source>> {
@@ -76,7 +79,7 @@ pub(self) struct Element {
     images: Vec<PathBuf>,
 }
 
-pub(crate) fn main(learn: bool, scale: f64, config: PathBuf, context: &Context) {
+pub(crate) async fn main(learn: bool, scale: f64, config: PathBuf, context: &Context) {
     let config_json = {
         let config_json = ConfigJson::read(config);
         if let Err(error) = config_json {
@@ -93,14 +96,25 @@ pub(crate) fn main(learn: bool, scale: f64, config: PathBuf, context: &Context) 
     let source_value = config_json.source.as_object().unwrap();
 
     // Collect elements will be sent.
-    let mut elements: Vec<Element> = vec![];
-    for tag in source_value.keys() {
-        if let Some(source) = find_source(tag) {
-            let result = source.fetch(learn, source_value.get(tag).unwrap(), context);
-            elements.extend(result);
-        }
-    }
-    let elements = elements; // Mark immutable.
+    let elements = {
+        let futures = source_value.keys().map(|tag| async {
+            if let Some(source) = find_source(tag) {
+                return Some(
+                    source
+                        .fetch(learn, source_value.get(tag).unwrap(), context)
+                        .await,
+                );
+            } else {
+                return None;
+            }
+        });
+        join_all(futures)
+            .await
+            .into_iter()
+            .flatten()
+            .flatten()
+            .collect::<Vec<Element>>()
+    };
 
     // Create and send document.
     let config = {
@@ -111,7 +125,10 @@ pub(crate) fn main(learn: bool, scale: f64, config: PathBuf, context: &Context) 
         }
         config.unwrap()
     };
-    'element: for element in elements {
+    let sender = &config.sender;
+    let receivers = &config.receivers;
+    let notify = &config_json.notify;
+    let futures = elements.into_iter().map(|element| async move {
         if !learn {
             let file = create_pdf_from_images(
                 &format!("{} {}.pdf", &element.comic_name, &element.chapter_name),
@@ -121,31 +138,26 @@ pub(crate) fn main(learn: bool, scale: f64, config: PathBuf, context: &Context) 
             );
             if let Err(error) = file {
                 context.report_error(&format!("failed to create document: {}", error));
-                continue 'element;
+                return;
             }
             let file = file.unwrap();
             let mut success = 0;
-            for receiver in &config.receivers {
-                if let Err(error) =
-                    config
-                        .sender
-                        .send_file(receiver, APP_NAME_TITALIZE, &file)
-                {
+            for receiver in receivers {
+                if let Err(error) = sender.send_file(receiver, APP_NAME_TITALIZE, &file) {
                     context
                         .report_error(&format!("failed to send mail to {}: {}", receiver, error));
                 } else {
                     success += 1;
                 }
             }
-            let content = config_json
-                .notify
+            let content = notify
                 .clone()
                 .unwrap_or(DEFAULT_NOTIFY_CONTENT_TEMPLATE.to_string())
                 .replace(HOLDER_COMIC_NAME, &element.comic_name)
                 .replace(HOLDER_CHAPTER_NAME, &element.chapter_name)
                 .replace(HOLDER_SUCCESS_COUNT, &success.to_string())
-                .replace(HOLDER_TOTAL_COUNT, &config.receivers.len().to_string());
-            context.notify(NOTIFY_UPDATE_TITLE, &content);
+                .replace(HOLDER_TOTAL_COUNT, receivers.len().to_string().as_str());
+            context.notify(NOTIFY_UPDATE_TITLE, &content).await;
         } else {
             context.report_info(&format!(
                 "Skip creating document for {}:{} in learn mode",
@@ -162,5 +174,6 @@ pub(crate) fn main(learn: bool, scale: f64, config: PathBuf, context: &Context) 
                 &element.comic_id, &element.chapter_id, error
             ));
         }
-    }
+    });
+    join_all(futures).await;
 }

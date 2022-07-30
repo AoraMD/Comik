@@ -45,7 +45,7 @@ Comik may send notifications in situations like comic updates if at least one no
 
 ## To-Do
 
-- [ ] Parallel working.
+- [x] Asynchronized working.
 - [ ] Comic search.
 - [ ] Add notification supported Android.
 

@@ -77,7 +77,7 @@ impl Context {
         return &self.repo;
     }
 
-    pub fn notify(&self, title: &str, content: &str) {
+    pub async fn notify(&self, title: &str, content: &str) {
         // Bark
         if let Some(bark) = &self.bark {
             let base = Path::new(bark)
@@ -87,7 +87,7 @@ impl Context {
                 .to_string();
             let url = format!("{}?icon={}&group={}",base, ICON_URL, APP_NAME_TITALIZE);
             self.report_debug(&format!("notify Bark: {}", &url));
-            if let Err(error) = reqwest::blocking::get(url) {
+            if let Err(error) = reqwest::get(url).await {
                 self.report_error(&format!("failed to notify Bark: {}", error));
             }
         }

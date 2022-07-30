@@ -4,20 +4,16 @@ version = "1.0.1"
 edition = "2021"
 
 [dependencies]
+futures = "0.3.21"
+tokio = { version = "1.20.1", features = ["full"] }
+async-trait = "0.1.56"
 const_format = "0.2.25"
-
-dirs = "4.0.0"
-
 clap = { version = "3.2.5", features = ["derive"] }
-
-native-tls = "0.2.10"
-lettre = "0.10.1"
-
+dirs = "4.0.0"
 serde = { version = "1.0.137", features = ["derive"] }
 serde_json = "1.0.81"
-
-printpdf = { version = "0.5.2", features = ["embedded_images"] }
-
+native-tls = "0.2.10"
 reqwest = { version = "0.11", features = ["blocking", "json"] }
-
+lettre = "0.10.1"
 url-escape = "0.1.1"
+printpdf = { version = "0.5.2", features = ["embedded_images"] }

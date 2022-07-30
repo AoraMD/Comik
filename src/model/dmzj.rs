@@ -54,13 +54,15 @@ impl From<ComicResp> for ComicInfo {
     }
 }
 
-pub(crate) fn search_comic(id: &str) -> Result<ComicInfo, Box<dyn Error>> {
+pub(crate) async fn search_comic(id: &str) -> Result<ComicInfo, Box<dyn Error>> {
     let response: ComicResp = {
-        let response = reqwest::blocking::get(format!(
+        let response = reqwest::get(format!(
             "https://api.dmzj.com//dynamic/comicinfo/{}.json",
             id
-        ))?
-        .text()?;
+        ))
+        .await?
+        .text()
+        .await?;
         serde_json::from_str(&response)?
     };
     return ComicInfo::from(response).into_ok();
@@ -84,27 +86,29 @@ impl From<ChapterResp> for ChapterInfo {
     }
 }
 
-pub(crate) fn search_chapter(
+pub(crate) async fn search_chapter(
     comic_id: &str,
     chapter_id: &str,
 ) -> Result<ChapterInfo, Box<dyn Error>> {
     let response: ChapterResp = {
-        let response = reqwest::blocking::get(format!(
+        let response = reqwest::get(format!(
             "https://m.dmzj.com/chapinfo/{}/{}.html",
             comic_id, chapter_id
-        ))?
-        .text()?;
+        ))
+        .await?
+        .text()
+        .await?;
         serde_json::from_str(&response)?
     };
     return ChapterInfo::from(response).into_ok();
 }
 
-pub(crate) fn download_image(file: &Path, url: &str) -> Result<(), Box<dyn Error>> {
-    let client = reqwest::blocking::Client::new();
+pub(crate) async fn download_image(file: &Path, url: &str) -> Result<(), Box<dyn Error>> {
+    let client = reqwest::Client::new();
     let response = client.get(url)
     .header(REFERER, "http://images.muwai.com/")
     .header(USER_AGENT, "%E5%8A%A8%E6%BC%AB%E4%B9%8B%E5%AE%B6%E7%A4%BE%E5%8C%BA/27 CFNetwork/1329 Darwin/21.3.0")
-    .send()?.bytes()?;
+    .send().await?.bytes().await?;
     let mut file = File::create(file)?;
     file.write_all(&response)?;
     return Ok(());
