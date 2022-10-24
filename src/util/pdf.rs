@@ -1,4 +1,4 @@
-use image_crate::{jpeg::JpegDecoder, png::PngDecoder};
+use image_crate::codecs::{jpeg::JpegDecoder, png::PngDecoder};
 use printpdf::*;
 use printpdf::{Image, Mm, PdfDocument};
 use std::{
