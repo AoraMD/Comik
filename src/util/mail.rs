@@ -1,7 +1,7 @@
 use crate::APP_NAME_TITLEIZE;
 use lettre::{
     address::Address,
-    message::{header::ContentType, Attachment, Mailbox as LettreMailBox, Message},
+    message::{header::ContentType, Attachment, Mailbox as LettreMailBox, Message, MultiPart},
     transport::smtp::authentication::{Credentials, Mechanism},
     SmtpTransport, Transport,
 };
@@ -36,12 +36,12 @@ impl Mailbox {
             .from(from)
             .to(to)
             .subject(subject)
-            .singlepart(
+            .multipart(MultiPart::alternative().singlepart(
                 Attachment::new(file.file_name().unwrap().to_string_lossy().to_string()).body(
                     tokio::fs::read(file).await?,
                     ContentType::parse("application/pdf").unwrap(),
                 ),
-            )?;
+            ))?;
 
         self.transport.borrow_mut().send(&mail)?;
         return Ok(());
